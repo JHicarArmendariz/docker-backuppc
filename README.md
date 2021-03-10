@@ -1,37 +1,35 @@
-# &nbsp;![](https://raw.githubusercontent.com/adferrand/docker-backuppc/master/images/logo_200px.png) adferrand/backuppc
-![](https://img.shields.io/badge/tags-4%20latest-lightgrey.svg) [![](https://img.shields.io/github/v/release/adferrand/docker-backuppc) ![](https://images.microbadger.com/badges/image/adferrand/backuppc.svg)](https://microbadger.com/images/adferrand/backuppc) [![Azure Pipelines](https://img.shields.io/azure-devops/build/adferrand/fd132650-8300-439c-b04a-d6899e77aa22/27)](https://dev.azure.com/adferrand/backuppc/_build?definitionId=27)
-
-* [Container functionalities](#container-functionalities)
-* [About BackupPC](#about-backuppc)
-* [Basic usage](#basic-usage)
-* [Data persistency](#data-persistency)
-	* [POSIX rights](#posix-rights)
-* [UI authentication/authorization](#ui-authenticationauthorization)
-    * [File authentication](#file-authentication)
-	* [Active Directory/LDAP](#active-directory--ldap)
-    * [Advanced configuration](#advanced-configuration)
-* [UI SSL encryption](#ui-ssl-encryption)
-	* [Self-signed certificate](#self-signed-certificate)
-	* [Advanced SSL use](#advanced-ssl-use)
-* [SMTP configuration for notification delivery](#smtp-configuration-for-notification-delivery)
-	* [Relay notifications to a local SMTP](#relay-notifications-to-a-local-smtp)
-	* [Advanced SMTP configuration](#advanced-smtp-configuration)
-* [Upgrading](#upgrading)
-	* [Dockerising an existing BackupPC v3.x](#dockerising-an-existing-backuppc-v3x)
-* [Miscellaneous](#miscellaneous)
-    * [Hostname](#hostname)
-    * [Timezone](#timezone)
-    * [Shell access](#shell-access)
-    * [Legacy version](#legacy-version)
+- [Container functionalities](#container-functionalities)
+- [About BackupPC](#about-backuppc)
+- [Basic usage](#basic-usage)
+- [Data persistency](#data-persistency)
+  - [POSIX rights](#posix-rights)
+- [UI authentication/authorization](#ui-authenticationauthorization)
+  - [File authentication](#file-authentication)
+  - [Active Directory / LDAP](#active-directory--ldap)
+  - [Advanced configuration](#advanced-configuration)
+- [UI SSL encryption](#ui-ssl-encryption)
+  - [Self-signed certificate](#self-signed-certificate)
+  - [Advanced SSL use](#advanced-ssl-use)
+- [SMTP configuration for notification delivery](#smtp-configuration-for-notification-delivery)
+  - [Relay notifications to a local SMTP](#relay-notifications-to-a-local-smtp)
+  - [Advanced SMTP configuration](#advanced-smtp-configuration)
+- [Upgrading](#upgrading)
+  - [Dockerising an existing BackupPC v3.x](#dockerising-an-existing-backuppc-v3x)
+- [Miscellaneous](#miscellaneous)
+  - [Hostname](#hostname)
+  - [Metrics](#metrics)
+  - [Timezone](#timezone)
+  - [Shell access](#shell-access)
+  - [Legacy version](#legacy-version)
 
 ## Container functionalities
 
 This docker is designed to provide a ready-to-go and maintainable BackupPC instance for your backups.
 
-* Provides a full-featured and functional BackupPC version 4.x/3.x. In particular, all backup protocols handled by BackupPC are supported.
-* BackupPC Admin Web UI is exposed on 8080 port by an embedded lighttpd server. Available protocols are HTTP or HTTPS through a self-signed SSL certificate.
-* Existing BackupPC configuration & pool are self-upgraded at first run of a newly created container instance. It allows for instance dockerisation of a pre-existing BackupPC v3.x instance.
-* Container image is constructed on top of an Alpine distribution to reduce the footprint. Image size is below 80MB.
+- Provides a full-featured and functional BackupPC version 4.x/3.x. In particular, all backup protocols handled by BackupPC are supported.
+- BackupPC Admin Web UI is exposed on 8080 port by an embedded lighttpd server. Available protocols are HTTP or HTTPS through a self-signed SSL certificate.
+- Existing BackupPC configuration & pool are self-upgraded at first run of a newly created container instance. It allows for instance dockerisation of a pre-existing BackupPC v3.x instance.
+- Container image is constructed on top of an Alpine distribution to reduce the footprint. Image size is below 80MB.
 
 ## About BackupPC
 
@@ -40,20 +38,25 @@ BackupPC is a free self-hosted backup software able to backup remote hosts throu
 
 See [BackupPC documentation](https://backuppc.github.io/backuppc/BackupPC.html) for further details and how to use it.
 
+Other links:
+
+- [Docker hub](https://hub.docker.com/r/adferrand/backuppc/tags?page=1&ordering=last_updated)
+- [Repositorio Git](https://github.com/backuppc/backuppc)
+
 ## Basic usage
 
 For testing purpose, you can create a new BackupPC instance with following command.
 **Please note that the basic usage is not suitable for production use.**
 
 ```bash
-docker run \
+docker run -d \
     --name backuppc \
     --publish 80:8080 \
     adferrand/backuppc
 ```
 
-Latest BackupPC 4.x docker image will be downloaded if needed, and started. 
-After starting, browse http://YOUR_SERVER_IP:8080 to access the BackupPC Admin Web UI. 
+Latest BackupPC 4.x docker image will be downloaded if needed, and started.
+After starting, browse http://YOUR_SERVER_IP:8080 to access the BackupPC Admin Web UI.
 
 The default credentials are:
 - **username:** backuppc
@@ -69,14 +72,21 @@ As we are talking about backups, you certainly want to control the data persiste
 
 It declares three volumes :
 
-* `/etc/backuppc`: stores the BackupPC configuration, in particular config.pl and hosts configuration.
-* `/home/backuppc`: home of the backuppc user, running your BackucPC instance, and contains in particular a .ssh directory with the SSH keys used to make backups through SSH protocol (see [SSH Keys](#ssh-keys)).
-* `/data/backuppc`: contains the BackupPC pool, so your backups themselves, and the logs.
+- `/etc/backuppc`: stores the BackupPC configuration, in particular config.pl and hosts configuration.
+- `/home/backuppc`: home of the backuppc user, running your BackucPC instance, and contains in particular a .ssh directory with the SSH keys used to make backups through SSH protocol (see [SSH Keys](#ssh-keys)).
+- `/data/backuppc`: contains the BackupPC pool, so your backups themselves, and the logs.
 
 It is advised to mount these volumes on the host in order to persist your backups. Assuming a host directory `/var/docker-data/backuppc{etc,home,data}`, mounted on a big filesystem, you can do for instance :
 
+Create shared dirs:
+
 ```bash
-docker run \
+sudo /var/docker-data/backuppc/{etc,home,data}
+sudo chgrp -R docker /var/docker-data
+```
+
+```bash
+docker run -d\
     --name backuppc \
     --publish 80:8080 \
     --volume /var/docker-data/backuppc/etc:/etc/backuppc \
@@ -92,6 +102,8 @@ All your backuppc configuration, backup and keys will survive the container dest
 The mounted host directory used for data persistency needs to be accessible by the host user corresponding to the backuppc user created in container instance. By default, this backuppc user is of `UUID 1000` and `GUID 1000`, which should correspond to the first non-root user create on your host.
 
 If you want to use an host user of different UUID/GUID, you can specify the container instance to use these customized values during creation with environment variables: respectively `BACKUPPC_UUID (default: 1000)` and `BACKUPPC_GUID (default: 1000)`.
+
+In my local, the user who runs the container is _jhicar_, who has UUID: 1000 and GUID: 1000.
 
 For example:
 
